@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { reactive, ref } from "vue";
+import { ElNotification, ElMessageBox } from "element-plus";
 
 import { getNodeSize } from "vite-plugin-vue-tree";
 
@@ -90,6 +91,14 @@ const model = ref<Model>({
   ],
 });
 
+const dialogFormVisible = ref(false);
+const form = reactive({
+  id: "",
+  isHead: false,
+  categoryId: "",
+  name: "",
+});
+
 const findNode = (id: string) => {
   for (let i = 0; i < model.value.nodes.length; i++) {
     if (model.value.nodes[i].id === id) {
@@ -118,39 +127,93 @@ const onError = (error: Error) => {
 };
 
 const onRemove = ({ id }: { id: string }) => {
-  console.log("app catched from j-tree-view onRemove:", id);
-  // 这里可以有一些异步逻辑
-  const { node, index } = findNode(id);
+  // console.log("app catched from j-tree-view onRemove:", id);
+  // // 这里可以有一些异步逻辑
+  // const { node, index } = findNode(id);
 
-  if (node) {
-    const parent = findNode(node.parent!);
-    // 边 - 父 - 子
-    // 1 删除边
-    removeEdge(parent.node!.id, node.id);
-    // 2 父节点 children
-    parent.node!.children = parent.node!.children.filter(
-      (child) => child !== node.id
-    );
-    // 3 删除节点
-    model.value.nodes.splice(index, 1);
-  }
+  // if (node) {
+  //   const parent = findNode(node.parent!);
+  //   // 边 - 父 - 子
+  //   // 1 删除边
+  //   removeEdge(parent.node!.id, node.id);
+  //   // 2 父节点 children
+  //   parent.node!.children = parent.node!.children.filter(
+  //     (child) => child !== node.id
+  //   );
+  //   // 3 删除节点
+  //   model.value.nodes.splice(index, 1);
+  // }
+  console.log("app catched from j-tree-view onRemove:", id);
+  ElMessageBox.confirm(
+    "proxy will permanently delete the file. Continue?",
+    "Warning",
+    {
+      confirmButtonText: "OK",
+      cancelButtonText: "Cancel",
+      type: "warning",
+    }
+  )
+    .then(() => {
+      // 这里可以有一些异步逻辑
+      const { node, index } = findNode(id);
+
+      if (node) {
+        const parent = findNode(node.parent!);
+        // 边 - 父 - 子
+        // 1 删除边
+        removeEdge(parent.node!.id, node.id);
+        // 2 父节点 children
+        parent.node!.children = parent.node!.children.filter(
+          (child) => child !== node.id
+        );
+        // 3 删除节点
+        model.value.nodes.splice(index, 1);
+      }
+      ElNotification({
+        type: "success",
+        message: "Delete completed",
+        position: "bottom-right",
+      });
+    })
+    .catch(() => {
+      ElNotification({
+        type: "info",
+        message: "Delete canceled",
+        position: "bottom-right",
+      });
+    });
 };
-const onAppend = async ({
-  id,
-  isHead,
-  categoryId,
-}: {
-  id: string;
-  isHead: boolean;
-  categoryId: string;
-}) => {
-  console.log("app catched from j-tree-view onAppend:", id);
+
+const appendNameCancel = () => {
+  dialogFormVisible.value = false;
+
+  ElNotification({
+    type: "info",
+    message: "Append canceled",
+    position: "bottom-right",
+  });
+};
+const appendName = () => {
+  const { id, isHead, categoryId, name } = form;
+
   // 这里可以有一些异步逻辑
   const { node } = findNode(id);
 
   if (node) {
-    const newNode = JSON.parse(JSON.stringify(node));
     const newId = ++mockId;
+    const newNode: Node = {
+      id: '',
+      parent: id,
+      children: [],
+      width,
+      height,
+      label: name,
+      data: {
+        id: newId.toString(),
+        name,
+        path: `${node.data.path}.${newId}`,
+      },
+    };
 
     if (isHead) {
       newNode.id = `head_${newId}`;
@@ -158,11 +221,6 @@ const onAppend = async ({
       newNode.id = `node_${newId}`;
       newNode.data.categoryId = categoryId;
     }
-    newNode.parent = id;
-    newNode.label = newNode.id;
-    newNode.data.id = newId;
-    newNode.data.path = `${node.data.path}.${newId}`;
-    newNode.data.name = newNode.id;
 
     const edge = {
       source: id,
@@ -179,6 +237,67 @@ const onAppend = async ({
     // 3 边
     model.value.edges.push(edge);
   }
+
+  dialogFormVisible.value = false;
+
+  ElNotification({
+    type: "success",
+    message: "Append completed",
+    position: "bottom-right",
+  });
+
+  form.name = "";
+};
+const onAppend = async ({
+  id,
+  isHead,
+  categoryId,
+}: {
+  id: string;
+  isHead: boolean;
+  categoryId: string;
+}) => {
+  // console.log("app catched from j-tree-view onAppend:", id);
+  // // 这里可以有一些异步逻辑
+  // const { node } = findNode(id);
+
+  // if (node) {
+  //   const newNode = JSON.parse(JSON.stringify(node));
+  //   const newId = ++mockId;
+
+  //   if (isHead) {
+  //     newNode.id = `head_${newId}`;
+  //   } else {
+  //     newNode.id = `node_${newId}`;
+  //     newNode.data.categoryId = categoryId;
+  //   }
+  //   newNode.parent = id;
+  //   newNode.label = newNode.id;
+  //   newNode.data.id = newId;
+  //   newNode.data.path = `${node.data.path}.${newId}`;
+  //   newNode.data.name = newNode.id;
+
+  //   const edge = {
+  //     source: id,
+  //     target: newNode.id,
+  //     router: {
+  //       name: "manhattan",
+  //     },
+  //   };
+  //   // 子 - 父 - 边
+  //   // 1 新节点
+  //   model.value.nodes.push(newNode);
+  //   // 2 父节点
+  //   node.children.push(newNode.id);
+  //   // 3 边
+  //   model.value.edges.push(edge);
+  // }
+  console.log("app catched from j-tree-view onAppend:", id);
+  form.id = id;
+  form.isHead = isHead;
+  form.categoryId = categoryId;
+
+  dialogFormVisible.value = true;
 };
 const onUpdate = async ({ id, value }: { id: string; value: string }) => {
   console.log("app catched from j-tree-view onUpdate:", id, value);
@@ -199,4 +318,18 @@ const onUpdate = async ({ id, value }: { id: string; value: string }) => {
     @on-append="onAppend"
     @on-update="onUpdate"
   ></j-tree-view>
+
+  <el-dialog v-model="dialogFormVisible" title="Append">
+    <el-form :model="form">
+      <el-form-item label="Name">
+        <el-input v-model="form.name" autocomplete="off" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="appendNameCancel">Cancel</el-button>
+        <el-button type="primary" @click="appendName">Confirm</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>

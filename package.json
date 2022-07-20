@@ -12,8 +12,9 @@
   "dependencies": {
     "@antv/layout": "^0.2.5",
     "@antv/x6": "^1.32.8",
+    "element-plus": "^2.2.9",
     "mitt": "^3.0.0",
-    "vite-plugin-vue-tree": "^0.2.2",
+    "vite-plugin-vue-tree": "^0.2.3",
     "vue": "^3.2.37"
   },
   "devDependencies": {
